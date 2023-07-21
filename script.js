@@ -70,6 +70,7 @@ function resize() {
 
 
 let turn = STATUS_OPTIONS.RED;
+const network = new Network([], board, turn);
 function render() {
     context.fillStyle = "#3B4252";
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -105,9 +106,12 @@ function render() {
             let xRect = x;
             let yRect = y - lineSize / 2;
 
-            if (board.horizontalEdges[i][j] == STATUS_OPTIONS.EMPTY) {
+            // the dots
+            if (board.horizontalEdges[i][j] == STATUS_OPTIONS.EMPTY && i != GRIDS_SIZE - 1) {
                 context.fillStyle = WHITE;
-                context.fillRect(xRect, yRect, boxSize, lineSize);
+                context.beginPath();
+                context.arc(x + boxSize, y, lineSize, 0, 2 * Math.PI);
+                context.fill();
             } else if (board.horizontalEdges[i][j] == STATUS_OPTIONS.RED) {
                 context.fillStyle = RED;
                 context.fillRect(xRect, yRect, boxSize, lineSize);
@@ -127,10 +131,7 @@ function render() {
             let xRect = x - lineSize / 2;
             let yRect = y;
 
-            if (board.verticalEdges[i][j] == STATUS_OPTIONS.EMPTY) {
-                context.fillStyle = WHITE;
-                context.fillRect(xRect, yRect, lineSize, boxSize);
-            } else if (board.verticalEdges[i][j] == STATUS_OPTIONS.RED) {
+            if (board.verticalEdges[i][j] == STATUS_OPTIONS.RED) {
                 context.fillStyle = RED;
                 context.fillRect(xRect, yRect, lineSize, boxSize);
             } else if (board.verticalEdges[i][j] == STATUS_OPTIONS.GREEN) {
@@ -157,123 +158,38 @@ function render() {
         context.fillRect(xRect, canvas.height - yRect - hRect, wRect, hRect);
         context.fillRect(canvas.width - yRect - hRect, xRect, hRect, wRect);
     }
+    
+    // the dots
+    for (let i = 0; i < GRIDS_SIZE - 1; i++) {
+        for (let j = 0; j < GRIDS_SIZE - 1; j++) {
+            let x = canvas.width * EDGE_OFFSET + boxSize * i;
+            let y = canvas.height * EDGE_OFFSET + boxSize * (j + 1);
+
+            context.fillStyle = WHITE;
+            context.beginPath();
+            context.arc(x + boxSize, y, lineSize, 0, 2 * Math.PI);
+            context.fill();
+        }
+    }
 
     // randomly move
     if (SPACE_DOWN) {
-        let notMoved = true;
-        let boxFinished = false;
+        if (board.hasMovesOpen()) {
+            const index = network.forwardValidOneshot(board.toDigit(), board);
+            let boxFinished = board.placeIndex(index, turn);
 
-        let moveX = -1;
-        let moveY = -1;
-        while (notMoved && board.hasMovesOpen()) {
-            moveX = Math.floor(Math.random() * GRIDS_SIZE);
-            moveY = Math.floor(Math.random() * GRIDS_SIZE);
-
-            if (Math.random() < 0.5) {
-                // horizontal
-                [notMoved, boxFinished] = board.placeHorizontalEdge(moveX, moveY, turn);
-            } else {
-                // vertical
-                [notMoved, boxFinished] = board.placeVerticalEdge(moveX, moveY, turn);
+            // switch turn
+            if (!boxFinished) {
+                if (turn == STATUS_OPTIONS.RED) {
+                    turn = STATUS_OPTIONS.GREEN;
+                } else {
+                    turn = STATUS_OPTIONS.RED;
+                }
             }
         }
-
-        // switch turn
-        if (!boxFinished) {
-            if (turn == STATUS_OPTIONS.RED) {
-                turn = STATUS_OPTIONS.GREEN;
-            } else {
-                turn = STATUS_OPTIONS.RED;
-            }
-        }
-        // SPACE_DOWN = false;
     }
 
             
-
-    // // randomly move
-    // let notMoved = true;
-    // while (notMoved) {
-    //     // console.log("a");
-    //     const i = Math.floor(Math.random() * GRIDS_SIZE);
-    //     const j = Math.floor(Math.random() * GRIDS_SIZE);
-
-    //     const box = board.boxes[i][j];
-
-    //     if (box.status == STATUS_OPTIONS.EMPTY) {
-    //         const boxDigit = box.toDigit();
-    //         if (boxDigit.includes(STATUS_OPTIONS.EMPTY)) {
-    //             const edge = Math.floor(Math.random() * 4);
-    //             if (boxDigit[edge] == STATUS_OPTIONS.EMPTY) {
-    //                 box.edges[Object.keys(box.edges)[edge]] = turn;
-    //                 notMoved = false;
-
-    //                 // check if box is completed
-    //                 let completed = box.toDigit().every(edge => edge != STATUS_OPTIONS.EMPTY);
-    //                 if (completed) {
-    //                     box.status = turn;
-    //                 } else {
-    //                     if (turn == STATUS_OPTIONS.RED) {
-    //                         turn = STATUS_OPTIONS.GREEN;
-    //                     } else {
-    //                         turn = STATUS_OPTIONS.RED;
-    //                     }
-    //                 }
-
-    //             }
-    //         }
-    //     }
-    // }
-
-
-    // for (let i = 0; i < GRIDS_SIZE; i++) {
-    //     for (let j = 0; j < GRIDS_SIZE; j++) {
-    //         const box = board.boxes[i][j];
-
-    //         const x = canvas.width * EDGE_OFFSET + boxSize * i;
-    //         const y = canvas.height * EDGE_OFFSET + boxSize * j;
-
-    //         if (box.status == STATUS_OPTIONS.RED) {
-    //             context.fillStyle = RED;
-    //             context.fillRect(x, y, boxSize, boxSize);
-    //         } else if (box.status == STATUS_OPTIONS.GREEN) {
-    //             context.fillStyle = GREEN;
-    //             context.fillRect(x, y, boxSize, boxSize);
-    //         }
-    //     }
-    // }
-
-    // for (let i = 0; i < GRIDS_SIZE; i++) {
-    //     for (let j = 0; j < GRIDS_SIZE; j++) {
-    //         const box = board.boxes[i][j];
-
-    //         const x = canvas.width * EDGE_OFFSET + boxSize * i;
-    //         const y = canvas.height * EDGE_OFFSET + boxSize * j;
-
-    //         for (edge in box.edges) {
-    //             if (box.edges[edge] == STATUS_OPTIONS.EMPTY) {
-    //                 context.fillStyle = WHITE;
-    //             } else if (box.edges[edge] == STATUS_OPTIONS.RED) {
-    //                 context.fillStyle = RED;
-    //             } else if (box.edges[edge] == STATUS_OPTIONS.GREEN) {
-    //                 context.fillStyle = GREEN;
-    //             } else if (box.edges[edge] == STATUS_OPTIONS.BLACK) {
-    //                 context.fillStyle = BLACK;
-    //             }
-
-    //             if (edge == "top") {
-    //                 context.fillRect(x - lineSize / 2, y - lineSize / 2, boxSize + lineSize, lineSize);
-    //             } else if (edge == "right") {
-    //                 context.fillRect(x + boxSize - lineSize / 2, y - lineSize / 2, lineSize, boxSize + lineSize);
-    //             } else if (edge == "bottom") {
-    //                 context.fillRect(x - lineSize / 2, y + boxSize - lineSize / 2, boxSize + lineSize, lineSize);
-    //             } else if (edge == "left") {
-    //                 context.fillRect(x - lineSize / 2, y - lineSize / 2, lineSize, boxSize + lineSize);
-    //             }
-    //         }
-    //     }
-    // }
-
 
     t1 = performance.now();
     delta = t1 - t0;

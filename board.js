@@ -39,6 +39,19 @@ class Board {
 			}
 		}
 	}
+	placeIndex(index, status) {
+		console.log(index, status);
+		const oldDigit = this.toDigit();
+		const oldCount = this.countAndSetCompletedBoxes(status);
+
+		oldDigit[index] = status;
+		this.fromDigit(oldDigit);
+		
+		const newCount = this.countAndSetCompletedBoxes(status);
+		const difCount = newCount - oldCount;
+		
+		return difCount > 0;
+	}
 	placeHorizontalEdge(x, y, status) {
 		if (y == 0) return [true, false];
 		if (this.horizontalEdges[x][y - 1] != STATUS_OPTIONS.EMPTY) return [true, false];
@@ -119,5 +132,22 @@ class Board {
 			}
 		}
 		return digit;
+	}
+	fromDigit(digit) {
+		let index = 0;
+		for (let i = 0; i < this.size; i++) {
+			for (let j = 0; j < this.size - 1; j++) {
+				this.horizontalEdges[i][j] = digit[index++];
+			}
+		}
+		for (let i = 0; i < this.size - 1; i++) {
+			for (let j = 0; j < this.size; j++) {
+				this.verticalEdges[i][j] = digit[index++];
+			}
+		}
+	}
+
+	numOfEdges() {
+		return this.size * (this.size - 1) * 2;
 	}
 }
