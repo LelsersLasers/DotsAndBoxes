@@ -23,29 +23,34 @@ class FitnessScore {
 }
 
 class Population {
-	constructor(numNetworks, baseNetwork, mutationRate, board) {
+	constructor(numNetworks, baseNetwork, board) {
 		this.numNetworks = numNetworks;
-		this.mutationRate = mutationRate;
 
 		this.networksAndFitness = [];
 		for (let i = 0; i < numNetworks; i++) {
 			this.networksAndFitness.push(new FitnessScore(baseNetwork.randomCopy(board), 0));
 		}
 	}
-	nextPopulation(board) {
+	nextPopulation(board, mutationRate) {
 		const newPopulation = [];
 		// -2 because keep best + 1 for random
 		for (let i = 0; i < this.numNetworks - 2; i++) {
 			const parent1 = weighted_random(this.networksAndFitness);
 			const parent2 = weighted_random(this.networksAndFitness);
-			newPopulation.push(new FitnessScore(parent1.network.crossover(parent2.network, this.mutationRate, board), 0));
+			newPopulation.push(new FitnessScore(parent1.network.crossover(parent2.network, mutationRate, board), 0));
 		}
 
-		const bestNetworkAndFitness = this.networksAndFitness.reduce((a, b) => a.fitness > b.fitness ? a : b);
+		const bestNetworkAndFitness = this.bestFitnessScore();
 		newPopulation.push(new FitnessScore(bestNetworkAndFitness.network, 0));
 		newPopulation.push(new FitnessScore(bestNetworkAndFitness.network.randomCopy(board), 0));
 			
 		this.networksAndFitness = newPopulation;
+	}
+	bestFitnessScore() {
+		return this.networksAndFitness.reduce((a, b) => a.fitness > b.fitness ? a : b);
+	}
+	worstFitnessScore() {
+		return this.networksAndFitness.reduce((a, b) => a.fitness < b.fitness ? a : b);
 	}
 	pairings() {
 		// every possible combination of 2 fitness scores

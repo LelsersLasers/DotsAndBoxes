@@ -1,4 +1,6 @@
 const GRIDS_SIZE = 8;
+const POP_SIZE = 10;
+
 const EDGE_OFFSET = 0.025;
 const LINE_WIDTH_RATIO = 0.05;
 
@@ -71,16 +73,69 @@ let turn = STATUS_OPTIONS.RED;
 let board = new Board(GRIDS_SIZE);
 
 const network = new Network([], board, turn);
-const population = new Population(4, network, 0.1, board);
+let mutationRate = 0.2;
+const population = new Population(POP_SIZE, network, board);
 
 const pairings = population.pairings();
 let currentPairing = 0;
+let generation = 0;
 
 let going = true;
 
 function render() {
     context.fillStyle = "#3B4252";
     context.fillRect(0, 0, canvas.width, canvas.height);
+
+    // simulate
+    for (let i = 0; i < 120; i++) {
+        if (!board.hasMovesOpen()) {
+            population.networksAndFitness[pairings[currentPairing][0]].fitness += board.countColoredBoxes(STATUS_OPTIONS.RED);
+            population.networksAndFitness[pairings[currentPairing][1]].fitness += board.countColoredBoxes(STATUS_OPTIONS.GREEN);
+
+
+            currentPairing++;
+            // console.log(`${generation}\t${currentPairing}\t${pairings.length}`);
+            if (currentPairing >= pairings.length) {
+                const dif = population.bestFitnessScore().fitness - population.worstFitnessScore().fitness;
+                console.log(`${generation}\t${dif}`);
+                
+                if (generation > 20) {
+                    going = false;
+                    break;
+                } else {
+                    mutationRate *= 0.9;
+                    population.nextPopulation(board, mutationRate);
+                    
+                    generation++;
+                    currentPairing = 0;
+                }
+            }
+
+            board = new Board(GRIDS_SIZE);
+            turn = STATUS_OPTIONS.RED;
+        } else {
+            population.networksAndFitness[pairings[currentPairing][0]].network.turn = STATUS_OPTIONS.RED;
+            population.networksAndFitness[pairings[currentPairing][1]].network.turn = STATUS_OPTIONS.GREEN;
+
+            if (turn == STATUS_OPTIONS.RED) {
+                const index = population.networksAndFitness[pairings[currentPairing][0]].network.forwardValidOneshot(board.toDigit(), board);
+                let boxFinished = board.placeIndex(index, turn);
+
+                // switch turn
+                if (!boxFinished) {
+                    turn = STATUS_OPTIONS.GREEN;
+                }
+            } else {
+                const index = population.networksAndFitness[pairings[currentPairing][1]].network.forwardValidOneshot(board.toDigit(), board);
+                let boxFinished = board.placeIndex(index, turn);
+
+                // switch turn
+                if (!boxFinished) {
+                    turn = STATUS_OPTIONS.RED;
+                }
+            }
+        }
+    }
 
     const boxSize = canvas.width * (1 - EDGE_OFFSET * 2) / GRIDS_SIZE;
     const lineSize = boxSize * LINE_WIDTH_RATIO;
@@ -179,43 +234,6 @@ function render() {
         }
     }
 
-    if (!board.hasMovesOpen()) {
-        population.networksAndFitness[pairings[currentPairing][0]].fitness += board.countColoredBoxes(STATUS_OPTIONS.RED);
-        population.networksAndFitness[pairings[currentPairing][1]].fitness += board.countColoredBoxes(STATUS_OPTIONS.GREEN);
-
-        currentPairing++;
-        console.log(currentPairing, pairings.length);
-        if (currentPairing >= pairings.length) {
-            population.nextPopulation(board);
-            currentPairing = 0;
-            going = false;
-        }
-
-        board = new Board(GRIDS_SIZE);
-        turn = STATUS_OPTIONS.RED;
-    } else {
-        population.networksAndFitness[pairings[currentPairing][0]].network.turn = STATUS_OPTIONS.RED;
-        population.networksAndFitness[pairings[currentPairing][1]].network.turn = STATUS_OPTIONS.GREEN;
-
-        if (turn == STATUS_OPTIONS.RED) {
-            const index = population.networksAndFitness[pairings[currentPairing][0]].network.forwardValidOneshot(board.toDigit(), board);
-            let boxFinished = board.placeIndex(index, turn);
-
-            // switch turn
-            if (!boxFinished) {
-                turn = STATUS_OPTIONS.GREEN;
-            }
-        } else {
-            const index = population.networksAndFitness[pairings[currentPairing][1]].network.forwardValidOneshot(board.toDigit(), board);
-            let boxFinished = board.placeIndex(index, turn);
-
-            // switch turn
-            if (!boxFinished) {
-                turn = STATUS_OPTIONS.RED;
-            }
-        }
-    }
-
     // randomly move
     // if (SPACE_DOWN) {
     //     if (board.hasMovesOpen()) {
@@ -245,6 +263,7 @@ function render() {
     //     "FPS: " + Math.round(1000 / delta);
 
     if (going) window.requestAnimationFrame(render);
+    else console.log(population);
 }
 
 
