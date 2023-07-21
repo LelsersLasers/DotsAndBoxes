@@ -88,4 +88,29 @@ class Network {
 
 		return index;
 	}
+	crossover(other, mutationRate) {
+		const newNetwork = new Network(this.hiddenLayerSizes, this.board, this.turn);
+		for (let i = 0; i < this.layers.length; i++) {
+			for (let j = 0; j < this.layers[i].numOutputs; j++) {
+				for (let k = 0; k < this.layers[i].numInputs; k++) {
+					if (Math.random() < 0.5 - mutationRate / 2) {
+						newNetwork.layers[i].weights[j][k] = this.layers[i].weights[j][k];
+					} else if (Math.random() > 0.5 + mutationRate / 2) {
+						newNetwork.layers[i].weights[j][k] = other.layers[i].weights[j][k];
+					} else {
+						newNetwork.layers[i].weights[j][k] = Math.random() - 0.5;
+					}
+				}
+
+				if (Math.random() < 0.5 - mutationRate / 2) {
+					newNetwork.layers[i].bias[j] = this.layers[i].bias[j];
+				} else if (Math.random() > 0.5 + mutationRate / 2) {
+					newNetwork.layers[i].bias[j] = other.layers[i].bias[j];
+				} else {
+					newNetwork.layers[i].bias[j] = Math.random() - 0.5;
+				}
+			}
+		}
+		return newNetwork;
+	}
 }
