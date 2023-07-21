@@ -53,8 +53,8 @@ class Network {
 		// [-1, 0, 1] -> [1, 0, -1]
 		return inputs.map((x) => -x);
 	}
-	randomCopy() {
-		const newNetwork = new Network(this.hiddenLayerSizes, this.board, this.turn);
+	randomCopy(board) {
+		const newNetwork = new Network(this.hiddenLayerSizes, board, this.turn);
 		return newNetwork;			
 	}
 	forwardPass(inputs) {
@@ -88,8 +88,8 @@ class Network {
 
 		return index;
 	}
-	crossover(other, mutationRate) {
-		const newNetwork = new Network(this.hiddenLayerSizes, this.board, this.turn);
+	crossover(other, mutationRate, board) {
+		const newNetwork = this.randomCopy(board)
 		for (let i = 0; i < this.layers.length; i++) {
 			for (let j = 0; j < this.layers[i].numOutputs; j++) {
 				for (let k = 0; k < this.layers[i].numInputs; k++) {

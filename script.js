@@ -37,8 +37,6 @@ function keyUpHandle(event) {
 
 const context = canvas.getContext("2d");
 
-const board = new Board(GRIDS_SIZE);
-
 function rbgToFillStyle(r, g, b) {
     return "rgb(" + Math.round(r * 255) + "," + Math.round(g * 255) + "," + Math.round(b * 255) + ")";
 }
@@ -70,7 +68,16 @@ function resize() {
 
 
 let turn = STATUS_OPTIONS.RED;
+let board = new Board(GRIDS_SIZE);
+
 const network = new Network([], board, turn);
+const population = new Population(4, network, 0.1, board);
+
+const pairings = population.pairings();
+let currentPairing = 0;
+
+let going = true;
+
 function render() {
     context.fillStyle = "#3B4252";
     context.fillRect(0, 0, canvas.width, canvas.height);
@@ -172,22 +179,59 @@ function render() {
         }
     }
 
-    // randomly move
-    if (SPACE_DOWN) {
-        if (board.hasMovesOpen()) {
-            const index = network.forwardValidOneshot(board.toDigit(), board);
+    if (!board.hasMovesOpen()) {
+        population.networksAndFitness[pairings[currentPairing][0]].fitness += board.countColoredBoxes(STATUS_OPTIONS.RED);
+        population.networksAndFitness[pairings[currentPairing][1]].fitness += board.countColoredBoxes(STATUS_OPTIONS.GREEN);
+
+        currentPairing++;
+        console.log(currentPairing, pairings.length);
+        if (currentPairing >= pairings.length) {
+            population.nextPopulation(board);
+            currentPairing = 0;
+            going = false;
+        }
+
+        board = new Board(GRIDS_SIZE);
+        turn = STATUS_OPTIONS.RED;
+    } else {
+        population.networksAndFitness[pairings[currentPairing][0]].network.turn = STATUS_OPTIONS.RED;
+        population.networksAndFitness[pairings[currentPairing][1]].network.turn = STATUS_OPTIONS.GREEN;
+
+        if (turn == STATUS_OPTIONS.RED) {
+            const index = population.networksAndFitness[pairings[currentPairing][0]].network.forwardValidOneshot(board.toDigit(), board);
             let boxFinished = board.placeIndex(index, turn);
 
             // switch turn
             if (!boxFinished) {
-                if (turn == STATUS_OPTIONS.RED) {
-                    turn = STATUS_OPTIONS.GREEN;
-                } else {
-                    turn = STATUS_OPTIONS.RED;
-                }
+                turn = STATUS_OPTIONS.GREEN;
+            }
+        } else {
+            const index = population.networksAndFitness[pairings[currentPairing][1]].network.forwardValidOneshot(board.toDigit(), board);
+            let boxFinished = board.placeIndex(index, turn);
+
+            // switch turn
+            if (!boxFinished) {
+                turn = STATUS_OPTIONS.RED;
             }
         }
     }
+
+    // randomly move
+    // if (SPACE_DOWN) {
+    //     if (board.hasMovesOpen()) {
+    //         const index = network.forwardValidOneshot(board.toDigit(), board);
+    //         let boxFinished = board.placeIndex(index, turn);
+
+    //         // switch turn
+    //         if (!boxFinished) {
+    //             if (turn == STATUS_OPTIONS.RED) {
+    //                 turn = STATUS_OPTIONS.GREEN;
+    //             } else {
+    //                 turn = STATUS_OPTIONS.RED;
+    //             }
+    //         }
+    //     }
+    // }
 
             
 
@@ -200,7 +244,7 @@ function render() {
     // document.getElementById("fpsText").innerHTML =
     //     "FPS: " + Math.round(1000 / delta);
 
-    window.requestAnimationFrame(render);
+    if (going) window.requestAnimationFrame(render);
 }
 
 

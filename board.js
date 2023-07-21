@@ -40,7 +40,6 @@ class Board {
 		}
 	}
 	placeIndex(index, status) {
-		console.log(index, status);
 		const oldDigit = this.toDigit();
 		const oldCount = this.countAndSetCompletedBoxes(status);
 
@@ -75,7 +74,30 @@ class Board {
 
 		return [false, difCount > 0];
 	}
+	countColoredBoxes(color) {
+		let count = 0;
+		for (let i = 0; i < this.size; i++) {
+			for (let j = 0; j < this.size; j++) {
+				let edges = {
+					top: false,
+					right: false,
+					bottom: false,
+					left: false
+				}
+				edges.left = i == 0 || this.verticalEdges[i - 1][j] != STATUS_OPTIONS.EMPTY;
+				edges.right = i == this.size - 1 || this.verticalEdges[i][j] != STATUS_OPTIONS.EMPTY;
+				edges.top = j == 0 || this.horizontalEdges[i][j - 1] != STATUS_OPTIONS.EMPTY;
+				edges.bottom = j == this.size - 1 || this.horizontalEdges[i][j] != STATUS_OPTIONS.EMPTY;
 
+				if (edges.top && edges.right && edges.bottom && edges.left) {
+					if (this.boxes[i][j] == color) {
+						count++;
+					}
+				}
+			}
+		}
+		return count;
+	}
 	countAndSetCompletedBoxes(turn = STATUS_OPTIONS.EMPTY) {
 		let count = 0;
 
