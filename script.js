@@ -159,7 +159,6 @@ function render() {
     }
 
     // randomly move
-
     if (SPACE_DOWN) {
         let notMoved = true;
         let boxFinished = false;
@@ -167,7 +166,6 @@ function render() {
         let moveX = -1;
         let moveY = -1;
         while (notMoved && board.hasMovesOpen()) {
-            // console.log("a");
             moveX = Math.floor(Math.random() * GRIDS_SIZE);
             moveY = Math.floor(Math.random() * GRIDS_SIZE);
 

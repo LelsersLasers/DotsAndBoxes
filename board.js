@@ -106,14 +106,18 @@ class Board {
 	}
 	
 
-	// toDigit() {
-	// 	// TODO: condense repeated edges
-	// 	let digit = [];
-	// 	for (let i = 0; i < this.size; i++) {
-	// 		for (let j = 0; j < this.size; j++) {
-	// 			digit.push(...this.boxes[i][j].toDigit());
-	// 		}
-	// 	}
-	// 	return digit;
-	// }
+	toDigit() {
+		const digit = [];
+		for (let i = 0; i < this.size; i++) {
+			for (let j = 0; j < this.size - 1; j++) {
+				digit.push(this.horizontalEdges[i][j]);
+			}
+		}
+		for (let i = 0; i < this.size - 1; i++) {
+			for (let j = 0; j < this.size; j++) {
+				digit.push(this.verticalEdges[i][j]);
+			}
+		}
+		return digit;
+	}
 }
