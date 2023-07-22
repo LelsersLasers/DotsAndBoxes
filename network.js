@@ -42,6 +42,8 @@ class Network {
 		this.layers = [];
 		this.turn = turn;
 
+		this.hiddenLayerSizes = hiddenLayerSizes;
+
 		let lastSize = board.numOfEdges();
 		for (let i = 0; i < hiddenLayerSizes; i++) {
 			this.layers.push(new Layer(lastSize, hiddenLayerSizes[i]));
@@ -112,5 +114,20 @@ class Network {
 			}
 		}
 		return newNetwork;
+	}
+
+	save() {
+		// write to localstorage
+		localStorage.setItem("network", JSON.stringify(this));
+	}
+	static load(board) {
+		const obj = JSON.parse(localStorage.getItem("network"));
+		const newNetwork = new Network(obj.hiddenLayerSizes, board, obj.turn);
+		newNetwork.layers = obj.layers.map((l) => {
+			const newLayer = new Layer(l.numInputs, l.numOutputs);
+			newLayer.weights = l.weights;
+			newLayer.bias = l.bias;
+			return newLayer;
+		});
 	}
 }

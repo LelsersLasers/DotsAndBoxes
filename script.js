@@ -1,5 +1,6 @@
-const GRIDS_SIZE = 8;
-const POP_SIZE = 10;
+const GRIDS_SIZE = 5;
+const POP_SIZE = 25;
+const GENERATIONS = 100;
 
 const EDGE_OFFSET = 0.025;
 const LINE_WIDTH_RATIO = 0.05;
@@ -11,15 +12,78 @@ const WHITE = "#D8DEE9";
 
 const canvas = document.getElementsByTagName("canvas")[0];
 canvas.addEventListener("click", function (event) {
-    // const rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
 
-    // const x = event.clientX - rect.left;
-    // const y = event.clientY - rect.top;
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
 
-    // const inputs = [x / canvas.width, y / canvas.height];
-    // const outputs = selectedColor;
+    const boxSize = canvas.width * (1 - EDGE_OFFSET * 2) / GRIDS_SIZE;
 
-    // dataPoints.push(new DataPoint(inputs, outputs));
+    let distances = [];
+    let index = 0;
+
+    for (let i = 0; i < GRIDS_SIZE; i++) {
+        for (let j = 0; j < GRIDS_SIZE - 1; j++) {
+            let x = canvas.width * EDGE_OFFSET + boxSize * i;
+            let y = canvas.height * EDGE_OFFSET + boxSize * (j + 1);
+
+            if (board.horizontalEdges[i][j] == STATUS_OPTIONS.EMPTY) {
+                const centerX = x + boxSize / 2;
+                const centerY = y;
+
+                const difX = mouseX - centerX;
+                const difY = mouseY - centerY;
+
+                const dist = Math.sqrt(difX * difX + difY * difY);
+                distances.push([index, dist]);
+            }
+
+            index++;
+        }
+    }
+
+    // draw vertical edges
+    for (let i = 0; i < GRIDS_SIZE - 1; i++) {
+        for (let j = 0; j < GRIDS_SIZE; j++) {
+            let x = canvas.width * EDGE_OFFSET + boxSize * (i + 1);
+            let y = canvas.height * EDGE_OFFSET + boxSize * j;
+
+            if (board.verticalEdges[i][j] == STATUS_OPTIONS.EMPTY) {
+                const centerX = x;
+                const centerY = y + boxSize / 2;
+
+                const difX = mouseX - centerX;
+                const difY = mouseY - centerY;
+
+                const dist = Math.sqrt(difX * difX + difY * difY);
+                distances.push([index, dist]);
+            }
+
+            index++;
+        }
+    }
+
+    if (distances.length > 0) {
+        const closedIndex = distances.reduce((a, b) => a[1] < b[1] ? a : b)[0];
+        const oldDigit = board.toDigit();
+		const oldCount = board.countAndSetCompletedBoxes(turn);
+
+		oldDigit[closedIndex] = turn;
+		board.fromDigit(oldDigit);
+		
+		const newCount = board.countAndSetCompletedBoxes(turn);
+		const difCount = newCount - oldCount;
+		
+		if (difCount == 0) {
+            if (turn == STATUS_OPTIONS.RED) {
+                turn = STATUS_OPTIONS.GREEN;
+            } else {
+                turn = STATUS_OPTIONS.RED;
+            }
+        }
+    }
+    
+
 });
 
 document.addEventListener("keydown", keyDownHandle, false);
@@ -73,60 +137,77 @@ let turn = STATUS_OPTIONS.RED;
 let board = new Board(GRIDS_SIZE);
 
 const network = new Network([], board, turn);
-let mutationRate = 0.2;
+let mutationRate = 0.4;
 const population = new Population(POP_SIZE, network, board);
+let bestNetwork = null;
 
 const pairings = population.pairings();
 let currentPairing = 0;
 let generation = 0;
 
-let going = true;
 
 function render() {
     context.fillStyle = "#3B4252";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     // simulate
-    for (let i = 0; i < 120; i++) {
-        if (!board.hasMovesOpen()) {
-            population.networksAndFitness[pairings[currentPairing][0]].fitness += board.countColoredBoxes(STATUS_OPTIONS.RED);
-            population.networksAndFitness[pairings[currentPairing][1]].fitness += board.countColoredBoxes(STATUS_OPTIONS.GREEN);
+    if (SPACE_DOWN || true) {
+        if (generation < GENERATIONS) {
+            for (let i = 0; i < 100; i++) {
+                if (!board.hasMovesOpen()) {
+                    population.networksAndFitness[pairings[currentPairing][0]].fitness += board.countColoredBoxes(STATUS_OPTIONS.RED);
+                    population.networksAndFitness[pairings[currentPairing][1]].fitness += board.countColoredBoxes(STATUS_OPTIONS.GREEN);
 
+                    currentPairing++;
+                    // console.log(`${generation}\t${currentPairing}\t${pairings.length}`);
+                    if (currentPairing >= pairings.length) {
+                        const dif = population.bestFitnessScore().fitness - population.worstFitnessScore().fitness;
+                        console.log(`${generation}\t${dif}`);
+                        
+                        bestNetwork = population.bestFitnessScore().network;
 
-            currentPairing++;
-            // console.log(`${generation}\t${currentPairing}\t${pairings.length}`);
-            if (currentPairing >= pairings.length) {
-                const dif = population.bestFitnessScore().fitness - population.worstFitnessScore().fitness;
-                console.log(`${generation}\t${dif}`);
-                
-                if (generation > 20) {
-                    going = false;
-                    break;
+                        mutationRate *= 0.9;
+                        population.nextPopulation(board, mutationRate);
+                        
+                        generation++;
+                        currentPairing = 0;
+                    }
+
+                    board = new Board(GRIDS_SIZE);
+                    turn = STATUS_OPTIONS.RED;
+
+                    if (generation >= GENERATIONS) {
+                        SPACE_DOWN = false;
+                        bestNetwork.save();
+                        break;
+                    }
                 } else {
-                    mutationRate *= 0.9;
-                    population.nextPopulation(board, mutationRate);
-                    
-                    generation++;
-                    currentPairing = 0;
+                    population.networksAndFitness[pairings[currentPairing][0]].network.turn = STATUS_OPTIONS.RED;
+                    population.networksAndFitness[pairings[currentPairing][1]].network.turn = STATUS_OPTIONS.GREEN;
+
+                    if (turn == STATUS_OPTIONS.RED) {
+                        const index = population.networksAndFitness[pairings[currentPairing][0]].network.forwardValidOneshot(board.toDigit(), board);
+                        let boxFinished = board.placeIndex(index, turn);
+
+                        // switch turn
+                        if (!boxFinished) {
+                            turn = STATUS_OPTIONS.GREEN;
+                        }
+                    } else {
+                        const index = population.networksAndFitness[pairings[currentPairing][1]].network.forwardValidOneshot(board.toDigit(), board);
+                        let boxFinished = board.placeIndex(index, turn);
+
+                        // switch turn
+                        if (!boxFinished) {
+                            turn = STATUS_OPTIONS.RED;
+                        }
+                    }
                 }
             }
-
-            board = new Board(GRIDS_SIZE);
-            turn = STATUS_OPTIONS.RED;
         } else {
-            population.networksAndFitness[pairings[currentPairing][0]].network.turn = STATUS_OPTIONS.RED;
-            population.networksAndFitness[pairings[currentPairing][1]].network.turn = STATUS_OPTIONS.GREEN;
-
-            if (turn == STATUS_OPTIONS.RED) {
-                const index = population.networksAndFitness[pairings[currentPairing][0]].network.forwardValidOneshot(board.toDigit(), board);
-                let boxFinished = board.placeIndex(index, turn);
-
-                // switch turn
-                if (!boxFinished) {
-                    turn = STATUS_OPTIONS.GREEN;
-                }
-            } else {
-                const index = population.networksAndFitness[pairings[currentPairing][1]].network.forwardValidOneshot(board.toDigit(), board);
+            if (turn == STATUS_OPTIONS.GREEN) {
+                bestNetwork.turn = STATUS_OPTIONS.GREEN;
+                const index = bestNetwork.forwardValidOneshot(board.toDigit(), board);
                 let boxFinished = board.placeIndex(index, turn);
 
                 // switch turn
@@ -168,13 +249,7 @@ function render() {
             let xRect = x;
             let yRect = y - lineSize / 2;
 
-            // the dots
-            if (board.horizontalEdges[i][j] == STATUS_OPTIONS.EMPTY && i != GRIDS_SIZE - 1) {
-                context.fillStyle = WHITE;
-                context.beginPath();
-                context.arc(x + boxSize, y, lineSize, 0, 2 * Math.PI);
-                context.fill();
-            } else if (board.horizontalEdges[i][j] == STATUS_OPTIONS.RED) {
+            if (board.horizontalEdges[i][j] == STATUS_OPTIONS.RED) {
                 context.fillStyle = RED;
                 context.fillRect(xRect, yRect, boxSize, lineSize);
             } else if (board.horizontalEdges[i][j] == STATUS_OPTIONS.GREEN) {
@@ -222,8 +297,8 @@ function render() {
     }
     
     // the dots
-    for (let i = 0; i < GRIDS_SIZE - 1; i++) {
-        for (let j = 0; j < GRIDS_SIZE - 1; j++) {
+    for (let i = -1; i < GRIDS_SIZE; i++) {
+        for (let j = -1; j < GRIDS_SIZE; j++) {
             let x = canvas.width * EDGE_OFFSET + boxSize * i;
             let y = canvas.height * EDGE_OFFSET + boxSize * (j + 1);
 
@@ -262,8 +337,7 @@ function render() {
     // document.getElementById("fpsText").innerHTML =
     //     "FPS: " + Math.round(1000 / delta);
 
-    if (going) window.requestAnimationFrame(render);
-    else console.log(population);
+    window.requestAnimationFrame(render);
 }
 
 
