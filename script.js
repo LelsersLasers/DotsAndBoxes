@@ -1,6 +1,6 @@
 const GRIDS_SIZE = 5;
-const POP_SIZE = 25;
-const GENERATIONS = 100;
+const POP_SIZE = 20;
+// const GENERATIONS = 100;
 
 const EDGE_OFFSET = 0.025;
 const LINE_WIDTH_RATIO = 0.05;
@@ -90,9 +90,18 @@ document.addEventListener("keydown", keyDownHandle, false);
 document.addEventListener("keyup", keyUpHandle, false);
 
 let SPACE_DOWN = false;
+let Q_TOGGLE = false;
 function keyDownHandle(event) {
     if (event.key.toLowerCase() == " ") {
         SPACE_DOWN = true;
+    } else if (event.key.toLowerCase() == "q") {
+        Q_TOGGLE = !Q_TOGGLE;
+
+        board = new Board(GRIDS_SIZE);
+        turn = STATUS_OPTIONS.RED;
+
+        population.networksAndFitness = population.oldNetworksAndFitness.slice();
+        currentPairing = 0;
     }
 }
 function keyUpHandle(event) {
@@ -136,7 +145,7 @@ function resize() {
 let turn = STATUS_OPTIONS.RED;
 let board = new Board(GRIDS_SIZE);
 
-const network = new Network([], board, turn);
+const network = new Network([240], board, turn);
 let mutationRate = 0.4;
 const population = new Population(POP_SIZE, network, board);
 let bestNetwork = null;
@@ -152,8 +161,8 @@ function render() {
 
     // simulate
     if (SPACE_DOWN || true) {
-        if (generation < GENERATIONS) {
-            for (let i = 0; i < 100; i++) {
+        if (!Q_TOGGLE || bestNetwork == null) {
+            for (let i = 0; i < 200; i++) {
                 if (!board.hasMovesOpen()) {
                     population.networksAndFitness[pairings[currentPairing][0]].fitness += board.countColoredBoxes(STATUS_OPTIONS.RED);
                     population.networksAndFitness[pairings[currentPairing][1]].fitness += board.countColoredBoxes(STATUS_OPTIONS.GREEN);
@@ -161,12 +170,17 @@ function render() {
                     currentPairing++;
                     // console.log(`${generation}\t${currentPairing}\t${pairings.length}`);
                     if (currentPairing >= pairings.length) {
-                        const dif = population.bestFitnessScore().fitness - population.worstFitnessScore().fitness;
-                        console.log(`${generation}\t${dif}`);
-                        
-                        bestNetwork = population.bestFitnessScore().network;
+                        const best = population.bestFitnessScore();
+                        const worst = population.worstFitnessScore();
+                        const worstIndex = population.networksAndFitness.indexOf(worst);
 
-                        mutationRate *= 0.9;
+                        const dif = best.fitness - worst.fitness;
+                        console.log(`${generation}\t${best.fitness}\t${worst.fitness}\t${dif}\t${worstIndex}`);
+                        
+                        bestNetwork = best.network;
+                        bestNetwork.save();
+
+                        mutationRate *= 0.95;
                         population.nextPopulation(board, mutationRate);
                         
                         generation++;
@@ -175,12 +189,6 @@ function render() {
 
                     board = new Board(GRIDS_SIZE);
                     turn = STATUS_OPTIONS.RED;
-
-                    if (generation >= GENERATIONS) {
-                        SPACE_DOWN = false;
-                        bestNetwork.save();
-                        break;
-                    }
                 } else {
                     population.networksAndFitness[pairings[currentPairing][0]].network.turn = STATUS_OPTIONS.RED;
                     population.networksAndFitness[pairings[currentPairing][1]].network.turn = STATUS_OPTIONS.GREEN;
@@ -332,7 +340,7 @@ function render() {
     delta = t1 - t0;
     t0 = performance.now()
     
-    // console.log(delta, 1000 / delta);
+    // console.log(`${delta.toFixed(0)}\t${(1000 / delta).toFixed(0)}`);
 
     // document.getElementById("fpsText").innerHTML =
     //     "FPS: " + Math.round(1000 / delta);
