@@ -45,7 +45,7 @@ class Network {
 		this.hiddenLayerSizes = hiddenLayerSizes;
 
 		let lastSize = board.numOfEdges();
-		for (let i = 0; i < hiddenLayerSizes; i++) {
+		for (let i = 0; i < hiddenLayerSizes.length; i++) {
 			this.layers.push(new Layer(lastSize, hiddenLayerSizes[i]));
 			lastSize = hiddenLayerSizes[i];
 		}
@@ -109,6 +109,23 @@ class Network {
 				} else if (Math.random() > 0.5 + mutationRate / 2) {
 					newNetwork.layers[i].bias[j] = other.layers[i].bias[j];
 				} else {
+					newNetwork.layers[i].bias[j] = Math.random() - 0.5;
+				}
+			}
+		}
+		return newNetwork;
+	}
+	mutate(mutationRate, board) {
+		const newNetwork = this.randomCopy(board);
+		for (let i = 0; i < this.layers.length; i++) {
+			for (let j = 0; j < this.layers[i].numOutputs; j++) {
+				for (let k = 0; k < this.layers[i].numInputs; k++) {
+					if (Math.random() < mutationRate) {
+						newNetwork.layers[i].weights[j][k] = Math.random() - 0.5;
+					}
+				}
+
+				if (Math.random() < mutationRate) {
 					newNetwork.layers[i].bias[j] = Math.random() - 0.5;
 				}
 			}

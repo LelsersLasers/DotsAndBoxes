@@ -30,14 +30,21 @@ class Population {
 		for (let i = 0; i < numNetworks; i++) {
 			this.networksAndFitness.push(new FitnessScore(baseNetwork.randomCopy(board), 0));
 		}
+		this.oldNetworksAndFitness = this.networksAndFitness.slice();
 	}
 	nextPopulation(board, mutationRate) {
+		this.oldNetworksAndFitness = this.networksAndFitness.slice();
+
 		const newPopulation = [];
-		// -2 because keep best + 1 for random
-		for (let i = 0; i < this.numNetworks - 2; i++) {
+		for (let i = 0; i < this.numNetworks / 2 - 1; i++) {
 			const parent1 = weighted_random(this.networksAndFitness);
 			const parent2 = weighted_random(this.networksAndFitness);
 			newPopulation.push(new FitnessScore(parent1.network.crossover(parent2.network, mutationRate, board), 0));
+		}
+
+		for (let i = 0; i < this.numNetworks / 2 - 1; i++) {
+			const net = weighted_random(this.networksAndFitness);
+			newPopulation.push(new FitnessScore(net.network.mutate(mutationRate, board), 0));
 		}
 
 		const bestNetworkAndFitness = this.bestFitnessScore();
